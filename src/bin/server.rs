@@ -1,11 +1,14 @@
 use std::error::Error;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::time::Instant;
 use quinn::{Endpoint, ServerConfig};
 use futures_util::StreamExt;
 use futures_util::TryStreamExt;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let start = Instant::now();
+
     let names = vec!["localhost".into()];
     let cert = rcgen::generate_simple_self_signed(names)?;
     let cert_der = cert.serialize_der()?;
@@ -25,11 +28,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let incoming_conn = incoming.next().await.unwrap(); // Option, not Result
     let mut new_conn = incoming_conn.await?;
-    println!("[server] connection accepted: addr={}", new_conn.connection.remote_address());
+    println!("[server] [{}ms] connection accepted: addr={}", start.elapsed().as_millis(), new_conn.connection.remote_address());
 
-    println!("[server] waiting stream opening...");
+    println!("[server] [{}ms] waiting stream opening...", start.elapsed().as_millis());
     let _stream = new_conn.uni_streams.try_next().await?;
-    println!("[server] stream opened");
+    println!("[server] [{}ms] stream opened", start.elapsed().as_millis());
 
     // ... read the stream
 

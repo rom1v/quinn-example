@@ -1,9 +1,12 @@
 use std::error::Error;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::time::Instant;
 use quinn::{ClientConfig, Endpoint};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let start = Instant::now();
+
     let cert_der = tokio::fs::read("tmp.cert").await?;
 
     let certificate = rustls::Certificate(cert_der);
@@ -22,15 +25,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let server_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 1234);
 
     let new_conn = endpoint.connect(server_addr, "localhost")?.await?;
-    println!("[client] connected: addr={}", new_conn.connection.remote_address());
+    println!("[client] [{}ms] connected: addr={}", start.elapsed().as_millis(), new_conn.connection.remote_address());
 
     let mut send = new_conn.connection.open_uni().await?;
-    println!("[client] stream opened");
+    println!("[client] [{}ms] stream opened", start.elapsed().as_millis());
 
     tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
 
     send.write_all("Hello, world!".as_bytes()).await?;
-    println!("[client] data sent");
+    println!("[client] [{}ms] data sent", start.elapsed().as_millis());
 
     send.finish().await?;
 
