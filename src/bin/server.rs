@@ -28,7 +28,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     println!("[server] connection accepted: addr={}", new_conn.connection.remote_address());
 
     println!("[server] waiting stream opening...");
-    let _stream = new_conn.bi_streams.try_next().await?;
+    let _stream = new_conn.uni_streams.try_next().await?;
     println!("[server] stream opened");
 
     // ... read the stream

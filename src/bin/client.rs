@@ -24,7 +24,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let new_conn = endpoint.connect(server_addr, "localhost")?.await?;
     println!("[client] connected: addr={}", new_conn.connection.remote_address());
 
-    let (mut send, mut _recv) = new_conn.connection.open_bi().await?;
+    let mut send = new_conn.connection.open_uni().await?;
     println!("[client] stream opened");
 
     tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
