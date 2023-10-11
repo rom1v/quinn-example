@@ -24,10 +24,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let server_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 1234);
 
-    let new_conn = endpoint.connect(server_addr, "localhost")?.await?;
-    println!("[client] [{}ms] connected: addr={}", start.elapsed().as_millis(), new_conn.connection.remote_address());
+    let conn = endpoint.connect(server_addr, "localhost")?.await?;
+    println!("[client] [{}ms] connected: addr={}", start.elapsed().as_millis(), conn.remote_address());
 
-    let mut send = new_conn.connection.open_uni().await?;
+    let mut send = conn.open_uni().await?;
     println!("[client] [{}ms] stream opened", start.elapsed().as_millis());
 
     tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
@@ -37,7 +37,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     send.finish().await?;
 
-    new_conn.connection.close(0u32.into(), b"done");
+    conn.close(0u32.into(), b"done");
 
     endpoint.wait_idle().await;
 

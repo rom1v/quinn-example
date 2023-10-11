@@ -2,8 +2,6 @@ use std::error::Error;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::time::Instant;
 use quinn::{Endpoint, ServerConfig};
-use futures_util::StreamExt;
-use futures_util::TryStreamExt;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -24,14 +22,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let server_config = ServerConfig::with_single_cert(cert_chain, private_key)?;
 
     let bind_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 1234);
-    let (endpoint, mut incoming) = Endpoint::server(server_config, bind_addr)?;
+    let endpoint = Endpoint::server(server_config, bind_addr)?;
 
-    let incoming_conn = incoming.next().await.unwrap(); // Option, not Result
-    let mut new_conn = incoming_conn.await?;
-    println!("[server] [{}ms] connection accepted: addr={}", start.elapsed().as_millis(), new_conn.connection.remote_address());
+    let connecting = endpoint.accept().await.unwrap(); // Option, not Result
+    let conn = connecting.await?;
+
+    println!("[server] [{}ms] connection accepted: addr={}", start.elapsed().as_millis(), conn.remote_address());
 
     println!("[server] [{}ms] waiting stream opening...", start.elapsed().as_millis());
-    let _stream = new_conn.uni_streams.try_next().await?;
+    let _ = conn.accept_uni().await?;
     println!("[server] [{}ms] stream opened", start.elapsed().as_millis());
 
     // ... read the stream
