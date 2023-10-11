@@ -45,20 +45,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
         println!("[server] [{}ms] stream opened", start.elapsed().as_millis());
     });
 
-    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
     conn.close(VarInt::from_u32(0), b"close");
-    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+    endpoint.wait_idle().await;
+    drop(endpoint);
 
     println!("[server] Creating a new connection immediately");
     let endpoint = create_endpoint().await?;
-
     let connecting = endpoint.accept().await.unwrap(); // Option, not Result
     let conn = connecting.await?;
-
-    println!("[server] new connection OK");
-
-    // ... read the stream
-
+    conn.close(VarInt::from_u32(0), b"close");
     endpoint.wait_idle().await;
 
     Ok(())
