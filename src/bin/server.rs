@@ -1,12 +1,9 @@
 use std::error::Error;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::time::Instant;
-use quinn::{Endpoint, ServerConfig};
+use quinn::{Endpoint, ServerConfig, VarInt};
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    let start = Instant::now();
-
+async fn create_endpoint() -> Result<Endpoint, Box<dyn Error>> {
     let names = vec!["localhost".into()];
     let cert = rcgen::generate_simple_self_signed(names)?;
     let cert_der = cert.serialize_der()?;
@@ -24,14 +21,41 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let bind_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 1234);
     let endpoint = Endpoint::server(server_config, bind_addr)?;
 
+    Ok(endpoint)
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+    let start = Instant::now();
+
+    let endpoint = create_endpoint().await?;
+
     let connecting = endpoint.accept().await.unwrap(); // Option, not Result
     let conn = connecting.await?;
 
     println!("[server] [{}ms] connection accepted: addr={}", start.elapsed().as_millis(), conn.remote_address());
 
-    println!("[server] [{}ms] waiting stream opening...", start.elapsed().as_millis());
-    let _ = conn.accept_uni().await?;
-    println!("[server] [{}ms] stream opened", start.elapsed().as_millis());
+    let conn2 = conn.clone();
+    tokio::spawn(async move {
+        println!("[server] [{}ms] waiting stream opening...", start.elapsed().as_millis());
+        let res = conn2.accept_uni().await;
+        if let Err(err) = res {
+            println!("{err:?}");
+        }
+        println!("[server] [{}ms] stream opened", start.elapsed().as_millis());
+    });
+
+    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+    conn.close(VarInt::from_u32(0), b"close");
+    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+
+    println!("[server] Creating a new connection immediately");
+    let endpoint = create_endpoint().await?;
+
+    let connecting = endpoint.accept().await.unwrap(); // Option, not Result
+    let conn = connecting.await?;
+
+    println!("[server] new connection OK");
 
     // ... read the stream
 
