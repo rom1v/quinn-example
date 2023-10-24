@@ -1,7 +1,6 @@
 use std::error::Error;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::time::Instant;
-use quinn::{Endpoint, ServerConfig};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -14,28 +13,33 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     tokio::fs::write("tmp.cert", &cert_der).await?;
 
-    let certificate = rustls::Certificate(cert_der);
-    let private_key = rustls::PrivateKey(priv_key);
-
-    let cert_chain = vec![certificate];
-
-    let server_config = ServerConfig::with_single_cert(cert_chain, private_key)?;
+    let certificate = kynet::quinn::Certificate::new(cert_der);
+    let private_key = kynet::quinn::PrivateKey::new(priv_key);
 
     let bind_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 1234);
-    let endpoint = Endpoint::server(server_config, bind_addr)?;
+    let server = kynet::Connection::quinn_start_server_on_addr(
+        bind_addr,
+        certificate,
+        private_key,
+        &Default::default(),
+    )?;
+    let conn = server.accept().await?;
 
-    let connecting = endpoint.accept().await.unwrap(); // Option, not Result
-    let conn = connecting.await?;
+    //println!("[server] [{}ms] connection accepted: addr={}", start.elapsed().as_millis(), conn.remote_address());
+    println!(
+        "[server] [{}ms] connection accepted",
+        start.elapsed().as_millis()
+    );
 
-    println!("[server] [{}ms] connection accepted: addr={}", start.elapsed().as_millis(), conn.remote_address());
-
-    println!("[server] [{}ms] waiting stream opening...", start.elapsed().as_millis());
-    let _ = conn.accept_uni().await?;
+    println!(
+        "[server] [{}ms] waiting stream opening...",
+        start.elapsed().as_millis()
+    );
+    let mut uni = conn.accept_uni().await?;
     println!("[server] [{}ms] stream opened", start.elapsed().as_millis());
 
     // ... read the stream
 
-    endpoint.wait_idle().await;
-
+    while uni.read(&mut [0; 1024]).await?.is_some() {}
     Ok(())
 }

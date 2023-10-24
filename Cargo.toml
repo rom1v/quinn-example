@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-quinn = "0.10.2"
+kynet = { version = "0.1", path = "../kyproto/kynet", features = ["kynet-quinn"] }
 rcgen = "0.11.3"
 rustls = { version = "0.21.7", features = ["quic"] }
 tokio = { version = "1.33.0", features = ["macros", "rt", "rt-multi-thread", "fs", "io-util"] }
