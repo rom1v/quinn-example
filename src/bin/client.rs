@@ -8,12 +8,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let cert_der = tokio::fs::read("tmp.cert").await?;
 
-    let certificate = kynet::quinn::Certificate::new(cert_der);
+    let certificate = kynet::cert::Certificate::new(cert_der);
+    let certs = kynet::cert::RootCertStore::with_single_cert(&certificate)?;
     let server_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 1234);
     let conn = kynet::Connection::quinn_connect(
         server_addr,
         "localhost",
-        certificate,
+        certs,
         &Default::default(),
     ).await?;
 

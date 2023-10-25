@@ -13,8 +13,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     tokio::fs::write("tmp.cert", &cert_der).await?;
 
-    let certificate = kynet::quinn::Certificate::new(cert_der);
-    let private_key = kynet::quinn::PrivateKey::new(priv_key);
+    let certificate = kynet::cert::Certificate::new(cert_der);
+    let private_key = kynet::cert::PrivateKey::new(priv_key);
 
     let bind_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 1234);
     let server = kynet::Connection::quinn_start_server_on_addr(
