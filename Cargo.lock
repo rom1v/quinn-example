@@ -151,7 +151,9 @@ dependencies = [
  "log",
  "quinn",
  "rustls",
+ "rustls-pemfile",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]
